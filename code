@@ -1,0 +1,42 @@
+# Import modules
+
+import nipype
+from nipype.interfaces.spm import Realing
+from nipype.interfaces.freesurfer import BBRegister
+from nipype.interfaces.fsl import SUSAN
+from nipype.interfaces.ants import WarpTimeSeriesImageMultiTransform
+
+# Motion Correction(spm)
+realign  =Realing(register_to_mean  = True)
+
+#Coregistration (FreeSurfer)
+coreg  =BBRegister()
+
+#Normalization(ANTS)
+normalize = WarpTimeSeriesImageMultiTransform()
+
+#Smoothing(FSL)
+smooth = SUSAN(fwhm = 6.0)
+
+#where can the raw data be found
+grabber = nipype.DataGrabber()
+grabber.inputs.base_directionory = 'G:/ds000105_R2.0.2'
+grabber.inputs.subjects_id = ['sub1']
+
+# where should the output data be sorted at?
+sink = nipype.DataSink()
+sink.inputs.base_directory = 'G:/ds000105_R2.0.2/sub-1/postresult'
+
+# Create a workflow to connect all those nodes
+preproflow = nipype.Workflow()
+
+#Connect the nodes to each other
+preproflow.connect([(grabber -> realign),
+                                  (realign -> coreg),
+                                  (coreg -> normalize),
+                                  (normalize -> smooth),
+                                  (smooth -> sink)
+                                )]
+
+#Run the workflow in parallel
+preproflow.run(mode = 'parallel')                           
